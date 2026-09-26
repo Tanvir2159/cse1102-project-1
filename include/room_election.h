@@ -1,4 +1,7 @@
 #ifndef ROOM_ELECTION_H
 #define ROOM_ELECTION_H
+
 void room_election_run(void);
+int  room_election_cmd(int argc, char **argv);
+
 #endif
