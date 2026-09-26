@@ -24,34 +24,57 @@ static void game_guess(void) {
     printf("  I picked a number between 1 and 100.\n");
     while (guess != secret) {
         printf("  guess: "); fflush(stdout);
-        if (scanf("%d", &guess) != 1) { while (getchar() != '\n'); continue; }
+        char buf[32];
+        if (!fgets(buf, sizeof(buf), stdin)) break;
+        guess = atoi(buf);
+        if (guess <= 0) continue;
         tries++;
         if (guess < secret)      printf("  \033[0;33mhigher\033[0m\n");
         else if (guess > secret) printf("  \033[0;33mlower\033[0m\n");
     }
-    printf("  \033[1;32mCorrect in %d tries!\033[0m\n\n", tries);
+    if (guess == secret) {
+        printf("  \033[1;32mCorrect in %d tries!\033[0m\n\n", tries);
+    }
 }
 
 /* ============================================================
    2. Rock Paper Scissors
    ============================================================ */
-static void game_rps(void) {
+static void game_rps(const char *initial_move) {
     const char *moves[] = {"rock", "paper", "scissors"};
     char input[MAX_STR];
     srand((unsigned)time(NULL));
     int wins = 0, losses = 0, draws = 0;
 
     printf("\n  \033[1;36m=== Rock Paper Scissors ===\033[0m\n");
+
+    /* Single round if move provided via CLI */
+    if (initial_move && initial_move[0] != '\0') {
+        int player = -1;
+        for (int i = 0; i < 3; i++) {
+            if (strcasecmp(initial_move, moves[i]) == 0) { player = i; break; }
+        }
+        if (player >= 0) {
+            int cpu = rand() % 3;
+            printf("  you: \033[1;36m%s\033[0m | cpu: \033[1;33m%s\033[0m\n", moves[player], moves[cpu]);
+            if (player == cpu) printf("  \033[0;33mResult: Draw.\033[0m\n\n");
+            else if ((player - cpu + 3) % 3 == 1) printf("  \033[1;32mResult: You win!\033[0m\n\n");
+            else printf("  \033[0;31mResult: You lose.\033[0m\n\n");
+            return;
+        }
+    }
+
     printf("  type rock / paper / scissors  (or q to quit)\n");
     while (1) {
         printf("  your move: "); fflush(stdout);
         if (!fgets(input, MAX_STR, stdin)) return;
-        input[strcspn(input, "\n")] = '\0';
-        if (strcmp(input, "q") == 0) break;
+        input[strcspn(input, "\r\n")] = '\0';
+        if (strcmp(input, "q") == 0 || strcmp(input, "quit") == 0) break;
 
         int player = -1;
-        for (int i = 0; i < 3; i++)
-            if (strcmp(input, moves[i]) == 0) { player = i; break; }
+        for (int i = 0; i < 3; i++) {
+            if (strcasecmp(input, moves[i]) == 0) { player = i; break; }
+        }
         if (player < 0) { printf("  invalid. try rock, paper or scissors.\n"); continue; }
 
         int cpu = rand() % 3;
@@ -64,7 +87,7 @@ static void game_rps(void) {
             printf("  \033[0;31myou lose.\033[0m\n"); losses++;
         }
     }
-    printf("  score  W:%d  L:%d  D:%d\n\n", wins, losses, draws);
+    printf("  final score  W:%d  L:%d  D:%d\n\n", wins, losses, draws);
 }
 
 /* ============================================================
@@ -79,64 +102,17 @@ static const char *HANGMAN_WORDS[] = {
 
 static void draw_hangman(int wrong) {
     const char *stages[] = {
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "          |\n"
-        "          |\n"
-        "          |\n"
-        "          |\n"
-        "    =========\n",
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "      O   |\n"
-        "          |\n"
-        "          |\n"
-        "          |\n"
-        "    =========\n",
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "      O   |\n"
-        "      |   |\n"
-        "          |\n"
-        "          |\n"
-        "    =========\n",
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "      O   |\n"
-        "     /|   |\n"
-        "          |\n"
-        "          |\n"
-        "    =========\n",
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "      O   |\n"
-        "     /|\\  |\n"
-        "          |\n"
-        "          |\n"
-        "    =========\n",
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "      O   |\n"
-        "     /|\\  |\n"
-        "     /    |\n"
-        "          |\n"
-        "    =========\n",
-        "\n"
-        "      +---+\n"
-        "      |   |\n"
-        "      O   |\n"
-        "     /|\\  |\n"
-        "     / \\  |\n"
-        "          |\n"
-        "    =========\n"
+        "\n      +---+\n      |   |\n          |\n          |\n          |\n          |\n    =========\n",
+        "\n      +---+\n      |   |\n      O   |\n          |\n          |\n          |\n    =========\n",
+        "\n      +---+\n      |   |\n      O   |\n      |   |\n          |\n          |\n    =========\n",
+        "\n      +---+\n      |   |\n      O   |\n     /|   |\n          |\n          |\n    =========\n",
+        "\n      +---+\n      |   |\n      O   |\n     /|\\  |\n          |\n          |\n    =========\n",
+        "\n      +---+\n      |   |\n      O   |\n     /|\\  |\n     /    |\n          |\n    =========\n",
+        "\n      +---+\n      |   |\n      O   |\n     /|\\  |\n     / \\  |\n          |\n    =========\n"
     };
-    printf("%s", stages[wrong]);
+    if (wrong >= 0 && wrong <= 6) {
+        printf("%s", stages[wrong]);
+    }
 }
 
 static void game_hangman(void) {
@@ -152,7 +128,7 @@ static void game_hangman(void) {
     revealed[len] = '\0';
 
     printf("\n  \033[1;36m=== Hangman ===\033[0m\n");
-    printf("  CS50 / programming themed words. 6 wrong guesses max.\n");
+    printf("  CS & programming themed words. 6 wrong guesses max.\n");
 
     while (wrong < 6) {
         draw_hangman(wrong);
@@ -166,7 +142,6 @@ static void game_hangman(void) {
         char ch = (char)tolower((unsigned char)line[0]);
         if (!isalpha(ch)) { printf("  enter a letter.\n"); continue; }
 
-        /* already guessed? */
         if (strchr(guessed, ch)) {
             printf("  already tried '%c'.\n", ch);
             continue;
@@ -202,19 +177,17 @@ static void game_hangman(void) {
 }
 
 /* ============================================================
-   4. Dino Jump (ASCII endless runner)
-   Windows: real-time with conio
-   Other:   simplified turn-based fallback
+   4. Dino Jump
    ============================================================ */
 #if HAS_CONIO
 
 static void game_dino(void) {
     const int WIDTH = 40;
-    int dino_y = 0;          /* 0 = ground, >0 = in air */
+    int dino_y = 0;
     int dino_vel = 0;
     int cactus_x = WIDTH - 1;
     int score = 0;
-    int speed = 80;          /* ms per frame */
+    int speed = 80;
     int running = 1;
     char ground[64];
 
@@ -225,21 +198,18 @@ static void game_dino(void) {
     SLEEP_MS(2000);
 
     while (running) {
-        /* input */
         if (_kbhit()) {
             int k = _getch();
             if (k == ' ' && dino_y == 0) dino_vel = 4;
-            if (k == 'q' || k == 'Q') { running = 0; break; }
+            if (k == 'q' || k == 'Q') { break; }
         }
 
-        /* physics */
         if (dino_vel > 0 || dino_y > 0) {
             dino_y += dino_vel;
             dino_vel--;
             if (dino_y <= 0) { dino_y = 0; dino_vel = 0; }
         }
 
-        /* move cactus */
         cactus_x--;
         if (cactus_x < 0) {
             cactus_x = WIDTH - 1 - (rand() % 10);
@@ -247,18 +217,15 @@ static void game_dino(void) {
             if (speed > 30) speed -= 2;
         }
 
-        /* collision */
         if (cactus_x == 3 && dino_y == 0) {
-            system("cls");
+            system(CLEAR);
             printf("\n  \033[0;31mCRASH!\033[0m  Score: \033[1;33m%d\033[0m\n\n", score);
             return;
         }
 
-        /* draw */
-        system("cls");
+        system(CLEAR);
         printf("  \033[1;36mDINO JUMP\033[0m   score: %d\n\n", score);
 
-        /* sky / dino row */
         for (int row = 4; row >= 0; row--) {
             printf("  ");
             for (int x = 0; x < WIDTH; x++) {
@@ -271,7 +238,6 @@ static void game_dino(void) {
             }
             printf("\n");
         }
-        /* ground */
         memset(ground, '=', WIDTH);
         ground[WIDTH] = '\0';
         printf("  %s\n", ground);
@@ -282,15 +248,14 @@ static void game_dino(void) {
     printf("\n  final score: %d\n\n", score);
 }
 
-#else  /* non-Windows simplified version */
+#else
 
 static void game_dino(void) {
-    int pos = 0;
     int score = 0;
     char line[MAX_STR];
 
-    printf("\n  \033[1;36m=== Dino Jump (simple) ===\033[0m\n");
-    printf("  Press Enter to jump when cactus is near.\n");
+    printf("\n  \033[1;36m=== Dino Jump (Turn-based Timing) ===\033[0m\n");
+    printf("  Press Enter to jump when cactus is near (distance <= 4).\n");
     printf("  Type q + Enter to quit.\n\n");
 
     while (1) {
@@ -313,31 +278,61 @@ static void game_dino(void) {
             printf("  \033[0;31mtoo early / crash!\033[0m  Score: %d\n\n", score);
             return;
         }
-        pos++;
     }
     printf("  final score: %d\n\n", score);
 }
 
 #endif
 
-/* ============================================================
-   Games menu
-   ============================================================ */
 void room_games_run(void) {
-    printf("\n  \033[1;36m┌─ games room ──────────────────┐\033[0m\n");
-    printf("  │  1. Guess the number          │\n");
-    printf("  │  2. Rock Paper Scissors       │\n");
-    printf("  │  3. Hangman                   │\n");
-    printf("  │  4. Dino Jump                 │\n");
-    printf("  \033[1;36m└────────────────────────────────┘\033[0m\n");
-    printf("  choice: ");
-    int c;
-    if (scanf("%d", &c) != 1) { while (getchar() != '\n'); return; }
-    while (getchar() != '\n');
+    while (1) {
+        printf("\n  \033[1;36m┌─ Games Arcade ───────────────┐\033[0m\n");
+        printf("  │ 1. Guess the Number          │\n");
+        printf("  │ 2. Rock Paper Scissors       │\n");
+        printf("  │ 3. Hangman                   │\n");
+        printf("  │ 4. Dino Jump                 │\n");
+        printf("  │ 0. Return to Vault           │\n");
+        printf("  \033[1;36m└──────────────────────────────┘\033[0m\n");
+        printf("  choice: "); fflush(stdout);
 
-    if (c == 1) game_guess();
-    else if (c == 2) game_rps();
-    else if (c == 3) game_hangman();
-    else if (c == 4) game_dino();
-    else printf("  invalid choice.\n");
+        char buf[64];
+        if (!fgets(buf, sizeof(buf), stdin)) break;
+        int choice = atoi(buf);
+        if (choice == 0) break;
+
+        if (choice == 1) game_guess();
+        else if (choice == 2) game_rps(NULL);
+        else if (choice == 3) game_hangman();
+        else if (choice == 4) game_dino();
+        else printf("  invalid choice.\n");
+    }
+}
+
+int room_games_cmd(int argc, char **argv) {
+    if (argc < 2) {
+        room_games_run();
+        return 0;
+    }
+
+    const char *sub = argv[1];
+    if (strcmp(sub, "guess") == 0) {
+        game_guess();
+        return 0;
+    }
+    if (strcmp(sub, "rps") == 0) {
+        const char *move = (argc >= 3) ? argv[2] : NULL;
+        game_rps(move);
+        return 0;
+    }
+    if (strcmp(sub, "hangman") == 0) {
+        game_hangman();
+        return 0;
+    }
+    if (strcmp(sub, "dino") == 0) {
+        game_dino();
+        return 0;
+    }
+
+    printf("  unknown game '%s'. Try: guess, rps, hangman, dino\n", sub);
+    return 1;
 }

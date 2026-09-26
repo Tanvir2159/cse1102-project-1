@@ -1,12 +1,12 @@
 # VAULT (v1.0)
 
-> A modular, terminal-based CLI environment and utility suite built in C (C99) for **CSE 1102: Structured Programming Language**.
+> A modular, dual-mode CLI environment and utility suite built in C (C99) for **CSE 1102: Structured Programming Language**.
 
 ---
 
 ## Overview
 
-**VAULT** is an interactive, multi-room terminal application that simulates a custom shell interface. Designed to demonstrate fundamental and advanced structured programming concepts in C—including custom data structures, pointers and pointer arithmetic, binary and text file I/O, recursion/simulation algorithms, cross-platform terminal handling, and modular project organization.
+**VAULT** is an interactive, multi-room terminal application and subcommand CLI engine. It is designed to showcase fundamental and advanced structured programming concepts in C—including custom data structures, function-pointer dispatch tables, pointers and pointer arithmetic, binary and text file serialization, runoff voting algorithms, cross-platform terminal raw mode, dynamic memory allocation (`malloc`/`free`), and modular system architecture.
 
 ```
   ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗
@@ -19,105 +19,117 @@
 
 ---
 
+## Dual-Mode Operation
+
+VAULT operates seamlessly in **two modes**:
+
+1. **Direct One-Shot CLI Mode:** Run subcommands directly from your system terminal (bash, zsh, Windows PowerShell):
+   ```bash
+   ./vault records search Rahim
+   ./vault ledger add Tanvir Rahim 120
+   ./vault attendance summary
+   ./vault election run
+   ```
+2. **Interactive REPL Shell:** Start the interactive shell with live Up/Down arrow history navigation, command shortcuts, and prompt interface:
+   ```bash
+   ./vault
+   vault> attendance mark Rahim P
+   vault> ledger settle
+   vault> history
+   vault> !!
+   ```
+
+---
+
 ## Features & Modules ("Rooms")
 
-The application is structured into specialized functional units known as **Rooms**:
+Each module supports **direct subcommands** for fast terminal execution and a **guided interactive menu fallback** when invoked without arguments:
 
 ### 1. Attendance Room (`attendance`)
 * **File:** `src/room_attendance.c`
-* Reads attendance rosters from `data/attendance.txt`.
-* Parses participant names and status indicators (`P` for present, `A` for absent).
-* Outputs a color-coded status summary and aggregates attendance percentages.
+* Reads and updates attendance rosters from `data/attendance.txt`.
+* Subcommands:
+  * `attendance list` – Displays color-coded roster with percentage metrics.
+  * `attendance mark <name> <P|A>` – Marks student present (`P`) or absent (`A`), appending new students automatically.
+  * `attendance summary` – Displays statistical summary card (total enrolled, present, absent, rate).
+  * `attendance` – Opens the interactive menu.
 
 ### 2. User Records Room (`records`)
 * **File:** `src/room_records.c`
-* Searches the registered student/user registry in `data/users.txt`.
-* Performs substring matching on search terms and displays all matching entries.
+* Searches and registers users in `data/users.txt`.
+* Subcommands:
+  * `records search <query>` (or `records find <query>`) – Substring query matching.
+  * `records list` – Enumerates all registered users.
+  * `records add <name>` – Appends a new student to the database.
+  * `records` – Opens the interactive search/list/add menu.
 
 ### 3. Runoff Election Room (`election`)
 * **File:** `src/room_election.c`
-* Implements an **Instant-Runoff Voting (IRV)** algorithm.
-* Loads candidates from `data/candidates.txt` and ballots from `data/votes.txt`.
-* Iteratively eliminates the candidate with the lowest vote count until a candidate secures an absolute majority (> 50%).
-* Persists the elected leader to `data/leader.txt`.
+* Implements an **Instant-Runoff Voting (IRV)** algorithm with elimination rounds.
+* Subcommands:
+  * `election run` (or `election tally`) – Tallies votes from `data/votes.txt`, computes multi-round eliminations until majority, and designates the Vault Leader in `data/leader.txt`.
+  * `election vote <candidate>` – Casts a new ballot for a registered candidate.
+  * `election candidates` – Lists all candidates in `data/candidates.txt`.
+  * `election add <candidate>` – Registers a new candidate.
+  * `election reset` – Clears all ballots and the current leader.
+  * `election` – Opens the interactive voting menu.
 
 ### 4. Readability Analyzer (`readability`)
 * **File:** `src/room_readability.c`
-* **Access Control:** Restricted strictly to the elected Vault Leader. Non-leaders are blocked from running analyses until an election is completed.
-* Computes the **Coleman-Liau Readability Index** on text from `data/sample.txt`:
+* **Role-Gated Security:** Restricted strictly to the elected Vault Leader.
+* Computes the **Coleman-Liau Readability Index**:
   $$\text{Grade} = 0.0588 \times L - 0.296 \times S - 15.8$$
-  *(where $L$ is the average number of letters per 100 words, and $S$ is the average number of sentences per 100 words).*
+* Subcommands:
+  * `readability file [path]` – Analyzes a file (defaults to `data/sample.txt`).
+  * `readability text "<string>"` – Analyzes custom text passed in double quotes.
+  * `readability` – Prompts for leader authentication and analyzes default sample text.
 
 ### 5. Games Arcade (`games`)
 * **File:** `src/room_games.c`
-* A collection of four classic terminal games:
-  1. **Guess the Number:** Random number guessing game between 1 and 100 with directional hints.
-  2. **Rock, Paper, Scissors:** Fast-paced game against the computer with win/loss/draw records.
-  3. **Hangman:** Interactive word-guessing game with ASCII gallows and programming-themed vocabulary.
-  4. **Dino Jump:** Endless obstacle runner with jump mechanics (real-time with `conio.h` on Windows; turn-based timing fallback on Linux/macOS).
+* Subcommands:
+  * `games guess` – Number guessing game (1–100) with higher/lower hints.
+  * `games rps [rock|paper|scissors]` – Rock-Paper-Scissors against CPU.
+  * `games hangman` – Hangman with ASCII gallows and CS-themed words.
+  * `games dino` – Endless obstacle runner (real-time on Windows with `conio.h`, turn-based timing fallback on macOS/Linux).
+  * `games` – Opens the arcade game selector.
 
 ### 6. Shared Ledger (`ledger`)
 * **File:** `src/room_ledger.c`
 * Demonstrates **binary file serialization** (`data/ledger.dat`) and pointer manipulation.
-* Features:
-  * **List Entries:** View all outstanding meal/shared debts (`<ower> owes <payer> <amount>`).
-  * **Add Entry:** Append a new record directly into binary storage.
-  * **Settle All:** Uses pointer arithmetic to traverse active entries and calculate net balances.
+* Subcommands:
+  * `ledger list` – Displays all recorded debt transactions.
+  * `ledger add <payer> <ower> <amount>` – Saves a new bill directly to binary storage.
+  * `ledger settle` – Performs net settlement calculations using pointer arithmetic.
+  * `ledger clear` – Clears binary ledger records.
+  * `ledger` – Opens the interactive ledger menu.
 
 ---
 
-## Built-in Shell Commands
+## Built-in Shell & Engine Commands
 
 From the `vault> ` prompt:
 
-| Command | Description |
-|---|---|
-| `help` | Displays command overview and available rooms. |
-| `help <room>` | Shows detailed instructions for a specific room (e.g., `help election`). |
-| `ls` | Lists all accessible rooms. |
-| `status` | Displays system info, data path, and current leader. |
-| `whoami` | Identifies the user against the database and checks leader status. |
-| `leader` | Shows the currently elected leader. |
-| `clear` | Clears the terminal screen (`cls` on Windows, `clear` on POSIX). |
-| `<room_name>` | Enters the specified room (e.g., `attendance`, `election`, `games`). |
-| `quit` / `exit` | Exits the Vault shell. |
+| Command | Usage | Description |
+|---|---|---|
+| `help` | `help [room]` | Displays command table or room-specific manual. |
+| `ls` | `ls` | Lists all accessible rooms. |
+| `status` | `status` | Displays system info, data path, and current leader. |
+| `whoami` | `whoami [username]` | Authenticates against database and checks leader status. |
+| `leader` | `leader` | Shows the currently elected leader. |
+| `history` | `history` | Displays recent command history with numerical indices. |
+| `!!` | `!!` | Re-executes the immediate last command. |
+| `!<n>` | `!<n>` | Re-executes command number `<n>` from history. |
+| `clear` | `clear` | Clears the terminal screen (`cls` on Windows, `clear` on POSIX). |
+| `quit` / `exit` | `quit` | Exits the Vault shell. |
 
 ---
 
-## Project Structure
+## Architecture Highlights
 
-```
-Project-CSE-1102-1/
-├── Makefile                # Build automation for Unix systems
-├── .gitignore              # Ignores build artifacts and runtime data
-├── README.md               # Project documentation
-├── include/                # Header files
-│   ├── common.h            # Global macros, data paths, and structs
-│   ├── shell.h             # Shell lifecycle and dispatcher prototypes
-│   ├── room_attendance.h   # Attendance room definitions
-│   ├── room_election.h     # Election room definitions
-│   ├── room_games.h        # Games arcade definitions
-│   ├── room_ledger.h       # Binary ledger definitions
-│   ├── room_readability.h  # Readability analyzer definitions
-│   └── room_records.h      # Records search definitions
-├── src/                    # Source code
-│   ├── main.c              # Application entry point
-│   ├── shell.c             # Shell loop, banner, and command dispatching
-│   ├── room_attendance.c   # Attendance processing logic
-│   ├── room_election.c     # Runoff voting logic
-│   ├── room_games.c        # Mini-games implementation
-│   ├── room_ledger.c       # Binary file I/O & pointer ledger
-│   ├── room_readability.c  # Coleman-Liau readability calculation
-│   └── room_records.c      # String matching and user lookup
-└── data/                   # Seed files and runtime storage
-    ├── attendance.txt      # Class roster with attendance flags
-    ├── candidates.txt      # Registered election candidates
-    ├── sample.txt          # Sample text for readability testing
-    ├── users.txt           # Registered user database
-    ├── votes.txt           # Cast ballots for runoff voting
-    ├── leader.txt          # (Generated) Current elected leader
-    └── ledger.dat          # (Generated) Binary ledger data
-```
+1. **Function-Pointer Dispatch Table:** Centralized `Command` struct table in `src/shell.c` eliminates deep `if-else` blocks and routes commands via clean function pointer callbacks (`cmd_handler_t`).
+2. **Quoted String Tokenizer:** Dynamically splits command strings into `argc` and `argv` tokens, preserving arguments enclosed in double quotes (e.g. `readability text "CSE 1102"`).
+3. **Terminal Raw Mode & Live History:** Custom non-canonical POSIX `termios` line reader allows scrolling through previous commands using Up/Down arrow keys directly in the terminal without external library dependencies like ncurses or GNU readline.
+4. **Binary & Text File I/O:** Demonstrates dual serialization schemes—formatted plain text files (`attendance.txt`, `candidates.txt`, `votes.txt`, `users.txt`) alongside raw binary structures (`ledger.dat`).
 
 ---
 
@@ -129,70 +141,34 @@ Project-CSE-1102-1/
 
 ### Option 1: macOS / Linux (using Makefile)
 
-1. **Compile the program:**
-   ```bash
-   make
-   ```
-2. **Launch the shell:**
-   ```bash
-   ./vault
-   ```
-3. **Compile and run in one step:**
-   ```bash
-   make run
-   ```
-4. **Clean up compiled object files and binaries:**
-   ```bash
-   make clean
-   ```
+```bash
+# Compile the project
+make
 
----
+# Run in interactive REPL mode
+./vault
+
+# Or execute one-shot CLI commands
+./vault status
+./vault records search Rahim
+./vault ledger list
+
+# Compile and run immediately
+make run
+
+# Clean build artifacts
+make clean
+```
 
 ### Option 2: Windows (using MinGW / GCC)
 
-Compile all source files directly:
 ```cmd
 gcc -Wall -Wextra -std=c99 -Iinclude -o vault.exe src/*.c
 vault.exe
 ```
 
-*Note: On Windows systems, run in a terminal supporting ANSI color codes and UTF-8 encoding (such as Windows Terminal or `chcp 65001`).*
-
----
-
-## Typical Workflow Example
-
-1. **Start the vault:**
-   ```bash
-   ./vault
-   ```
-2. **Hold an election to designate a leader:**
-   ```
-   vault> election
-   ```
-   *(Votes are tallied from `data/votes.txt` and the winner is saved as the system leader).*
-3. **Authenticate:**
-   ```
-   vault> whoami
-   identify yourself: <winner_name>
-   ```
-4. **Analyze text as the leader:**
-   ```
-   vault> readability
-   identify yourself: <winner_name>
-   ```
-5. **Manage shared bills or play games:**
-   ```
-   vault> ledger
-   vault> games
-   ```
-6. **Exit the session:**
-   ```
-   vault> quit
-   ```
-
 ---
 
 ## License & Academic Context
 
-Developed for academic purposes under the **CSE 1102 (Structured Programming Language)** curriculum.
+Developed for academic evaluation under the **CSE 1102 (Structured Programming Language)** curriculum at **Khulna University of Engineering & Technology (KUET)**.
